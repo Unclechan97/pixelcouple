@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12101f">
+<title>我们的小小世界</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ff9fbe' d='M8 14C5 11 1 8.5 1 5.5 1 3.6 2.6 2 4.5 2 5.8 2 7 2.8 8 4c1-1.2 2.2-2 3.5-2C13.4 2 15 3.6 15 5.5 15 8.5 11 11 8 14z'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --frame: 192px;
+    --foot-offset: 4px;
+    --hug-frame: 288px;
+    --hug-foot-offset: 6px;
+    --ground: 88px;
+    --ink: #f2ecdc;
+    --pink: #ff9fbe;
+    --pink-soft: #ffc9d8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    overflow: hidden;
+    font-family: "Courier New", "Microsoft YaHei", ui-monospace, monospace;
+    color: var(--ink);
+    background: radial-gradient(ellipse at 50% 12%, #2b2757 0%, #1a1735 46%, #0b0a18 100%);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- 夜空 ---------- */
+  .sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .sky::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: var(--ground); height: 210px;
+    background: linear-gradient(transparent, rgba(255, 159, 190, .05));
+  }
+  .star {
+    position: absolute; width: 3px; height: 3px; background: #ffe9b0;
+    box-shadow: 0 0 6px rgba(255, 233, 176, .35);
+  }
+  .star.twinkle { animation: twinkle 3.4s ease-in-out infinite; }
+  @keyframes twinkle {
+    0%, 100% { opacity: .22; }
+    50% { opacity: 1; }
+  }
+
+  /* ---------- 地面 ---------- */
+  .ground {
+    position: fixed; left: 0; right: 0; bottom: 0; height: var(--ground);
+    background:
+      linear-gradient(transparent 0 8px, rgba(0, 0, 0, .06) 8px 100%),
+      repeating-linear-gradient(90deg, #2d4a3b 0 8px, #274133 8px 16px);
+    border-top: 8px solid #3f654f;
+    z-index: 1;
+  }
+  .ground::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -16px; height: 16px;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 12px, #6fae7d 12px 14px, transparent 14px 28px),
+      repeating-linear-gradient(90deg, transparent 0 28px, #5d9a6d 28px 32px, transparent 32px 52px);
+  }
+  .ground::after {
+    content: ""; position: absolute; inset: 0; opacity: .14;
+    background: repeating-linear-gradient(135deg, transparent 0 14px, #0c1a14 14px 16px);
+    pointer-events: none;
+  }
+
+  h1 {
+    position: fixed; top: 26px; left: 0; right: 0; margin: 0;
+    text-align: center; font-size: 13px; letter-spacing: .42em;
+    font-weight: normal; opacity: .72; z-index: 4;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .4);
+  }
+  .hint {
+    position: fixed; top: 52px; left: 0; right: 0; margin: 0;
+    text-align: center; font-size: 10px; letter-spacing: .18em;
+    opacity: .35; z-index: 4; transition: opacity .4s ease;
+  }
+
+  /* ---------- 小人 ---------- */
+  .stage { position: fixed; inset: 0; z-index: 2; }
+  .actor {
+    position: absolute;
+    width: var(--frame); height: var(--frame);
+    bottom: calc(var(--ground) - var(--foot-offset));
+    cursor: pointer;
+    will-change: left, transform;
+    transition: opacity .32s ease;
+  }
+  .actor.hidden { opacity: 0; pointer-events: none; }
+  .actor .shadow {
+    position: absolute; left: 50%; bottom: var(--foot-offset);
+    width: 54px; height: 11px; transform: translateX(-50%);
+    border-radius: 50%;
+    background: rgba(8, 7, 18, .38);
+    box-shadow: 0 0 10px rgba(8, 7, 18, .25);
+    z-index: 0;
+  }
+  .actor .frame {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    image-rendering: pixelated;
+  }
+  .actor:hover .frame { filter: brightness(1.06); }
+  .actor:focus-visible { outline: none; }
+  .actor:focus-visible .frame { filter: brightness(1.18) drop-shadow(0 0 6px rgba(255, 159, 190, .5)); }
+
+  /* ---------- 飘心 ---------- */
+  .fx { position: fixed; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
+  .heart {
+    position: absolute; transform: translateX(-50%);
+    font-size: 18px; line-height: 1; color: var(--pink);
+    animation: float 2.8s ease-out forwards;
+    pointer-events: none;
+    text-shadow: 0 2px 0 rgba(70, 25, 45, .28);
+    will-change: transform, opacity;
+  }
+  @keyframes float {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(.7) rotate(-6deg); }
+    15% { opacity: 1; }
+    70% { opacity: .9; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--drift, 0px)), -118px) scale(1.15) rotate(7deg); }
+  }
+
+  /* ---------- 拥抱场景 ---------- */
+  .hug-scene {
+    position: fixed; inset: 0; z-index: 15;
+    opacity: 0; visibility: hidden;
+    transition: opacity .36s ease, visibility .36s ease;
+    pointer-events: none;
+  }
+  .hug-scene.active { opacity: 1; visibility: visible; }
+  .hug-veil {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 60%,
+      transparent 0 12%, rgba(12, 9, 24, .36) 46%, rgba(8, 6, 18, .72) 100%);
+  }
+  .hug-glow {
+    position: absolute; left: 50%; bottom: calc(var(--ground) + 18px);
+    width: min(560px, 92vw); height: 310px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center,
+      rgba(255, 159, 190, .26) 0%, rgba(255, 159, 190, .08) 38%, transparent 70%);
+    opacity: 0; transition: opacity .8s ease .1s;
+  }
+  .hug-scene.active .hug-glow { opacity: 1; }
+  .hug-shadow {
+    position: absolute; left: 50%; bottom: calc(var(--ground) - 7px);
+    width: calc(var(--hug-frame) * .66); height: 18px; transform: translateX(-50%);
+    border-radius: 50%;
+    background: rgba(8, 7, 18, .42);
+    opacity: 0; transition: opacity .5s ease .1s;
+    z-index: 1;
+  }
+  .hug-scene.active .hug-shadow { opacity: 1; }
+  .hug-sprite {
+    position: absolute; left: 50%;
+    bottom: calc(var(--ground) - var(--hug-foot-offset));
+    width: var(--hug-frame); height: var(--hug-frame);
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    transform: translateX(-50%) scale(.92);
+    opacity: 0;
+    transition: opacity .3s ease, transform .55s cubic-bezier(.18, .9, .24, 1);
+    pointer-events: auto; cursor: pointer;
+    z-index: 2;
+  }
+  .hug-scene.active .hug-sprite { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  /* ---------- 按钮 ---------- */
+  .controls {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 25; display: flex; flex-direction: column; align-items: center;
+    transition: opacity .3s ease;
+  }
+  .hugging .controls { opacity: 0; pointer-events: none; }
+  .hugging .hint { opacity: .15; }
+  .hug-btn {
+    appearance: none; border: 3px solid #ffabc4; border-radius: 3px;
+    background: linear-gradient(#41314f, #32253f);
+    color: #fff3f6; font-family: inherit; font-size: 13px;
+    letter-spacing: .18em; padding: 9px 20px 10px;
+    box-shadow: 0 5px 0 #1a1226, 0 0 0 1px rgba(255, 255, 255, .08) inset;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .1s ease, box-shadow .1s ease, filter .2s ease;
+  }
+  .hug-btn:hover { filter: brightness(1.12); }
+  .hug-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #1a1226; }
+  .hug-btn:focus-visible { outline: 2px dashed var(--pink-soft); outline-offset: 4px; }
+  .hug-btn .heart-icon {
+    color: var(--pink); font-size: 15px; line-height: 1;
+    animation: beat 2.4s ease-in-out infinite;
+  }
+  @keyframes beat {
+    0%, 100% { transform: scale(1); }
+    8% { transform: scale(1.22); }
+    16% { transform: scale(1); }
+    24% { transform: scale(1.12); }
+    32% { transform: scale(1); }
+  }
+
+  @media (max-width: 540px) {
+    :root { --ground: 74px; }
+    h1 { top: 18px; font-size: 11px; letter-spacing: .3em; }
+    .hint { top: 40px; font-size: 9px; letter-spacing: .1em; }
+    .hug-btn { font-size: 12px; padding: 8px 17px 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .star.twinkle, .hug-btn .heart-icon { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="sky" id="sky"></div>
+  <div class="ground"></div>
+  <h1>我们的小小世界</h1>
+  <p class="hint" id="hint">点小人跳一下 · 空格抱一抱</p>
+
+  <div class="stage" id="stage"></div>
+  <div class="fx" id="fx"></div>
+
+  <div class="hug-scene" id="hugScene" aria-hidden="true">
+    <div class="hug-veil"></div>
+    <div class="hug-glow"></div>
+    <div class="hug-shadow"></div>
+    <div class="hug-sprite" id="hugSprite" title="抱一抱"></div>
+  </div>
+
+  <div class="controls">
+    <button class="hug-btn" id="hugBtn" type="button">
+      <span class="heart-icon" aria-hidden="true">♥</span>抱一抱
+    </button>
+  </div>
+
+  <script src="assets/manifest.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const manifest = window.SPRITE_MANIFEST;
+      const stage = document.getElementById("stage");
+      const fx = document.getElementById("fx");
+      const hugScene = document.getElementById("hugScene");
+      const hugSprite = document.getElementById("hugSprite");
+      const hugBtn = document.getElementById("hugBtn");
+      const hintEl = document.getElementById("hint");
+
+      if (!manifest || !manifest.chars) {
+        hintEl.textContent = "素材还没生成：先运行 python tools/process.py";
+        hugBtn.hidden = true;
+        return;
+      }
+
+      const meta = manifest.meta || { frame: 96, baseline: 94, zoom: 2 };
+      const FRAME = meta.frame;
+      const BASELINE = meta.baseline;
+      const ZOOM = meta.zoom;
+      const DISPLAY = FRAME * ZOOM;
+      const FOOT_OFFSET = (FRAME - BASELINE) * ZOOM;
+      const HUG_ZOOM = 3;
+      const HUG_DISPLAY = FRAME * HUG_ZOOM;
+      const HUG_FOOT_OFFSET = (FRAME - BASELINE) * HUG_ZOOM;
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty("--frame", DISPLAY + "px");
+      rootStyle.setProperty("--foot-offset", FOOT_OFFSET + "px");
+      rootStyle.setProperty("--hug-frame", HUG_DISPLAY + "px");
+      rootStyle.setProperty("--hug-foot-offset", HUG_FOOT_OFFSET + "px");
+
+      const chars = manifest.chars;
+      const coupleInfo = manifest.couples && manifest.couples.couple;
+      const HUG_COUNT = coupleInfo && coupleInfo.hug ? coupleInfo.hug : 0;
+
+      const ground = () => {
+        const v = getComputedStyle(document.documentElement).getPropertyValue("--ground");
+        return parseFloat(v) || 88;
+      };
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+      const rand = (a, b) => a + Math.random() * (b - a);
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      let hugRunning = false;
+      let walkers = [];
+
+      function spawnHeart(x, bottom, { size = rand(12, 20), duration = rand(2.4, 3.4) } = {}) {
+        const heart = document.createElement("div");
+        heart.className = "heart";
+        heart.textContent = Math.random() < 0.22 ? "♡" : "♥";
+        heart.style.left = clamp(x, 10, window.innerWidth - 10) + "px";
+        heart.style.bottom = bottom + "px";
+        heart.style.fontSize = size + "px";
+        heart.style.animationDuration = duration + "s";
+        heart.style.setProperty("--drift", rand(-28, 28).toFixed(1) + "px");
+        fx.appendChild(heart);
+        setTimeout(() => heart.remove(), (duration + 0.4) * 1000);
+      }
+
+      function spawnHugHearts(n) {
+        const spread = Math.min(175, window.innerWidth * 0.36);
+        for (let i = 0; i < n; i++) {
+          const x = window.innerWidth / 2 + rand(-spread, spread);
+          const bottom = ground() + rand(135, 265);
+          setTimeout(
+            () => spawnHeart(x, bottom, { size: rand(14, 25) }),
+            i * 110
+          );
+        }
+      }
+
+      class Walker {
+        constructor(id, centerX, dir) {
+          this.id = id;
+          this.counts = chars[id] || {};
+          this.x = this.clampX(centerX - DISPLAY / 2);
+          this.moveDir = dir;
+          this.facing = dir;
+          this.mode = "idle";
+          this.anim = "idle";
+          this.animElapsed = 0;
+          this.frame = 0;
+          this.frames = 1;
+          this.modeLeft = rand(1400, 4000);
+          this.oneShot = null;
+          this.suspended = false;
+          this.speed = 28;
+
+          this.el = document.createElement("div");
+          this.el.className = "actor";
+          this.el.setAttribute("role", "button");
+          this.el.setAttribute("aria-label", id === "me" ? "我，点一下跳一跳" : "她，点一下跳一跳");
+          this.el.tabIndex = 0;
+
+          const shadow = document.createElement("div");
+          shadow.className = "shadow";
+          this.frameEl = document.createElement("div");
+          this.frameEl.className = "frame";
+          this.el.append(shadow, this.frameEl);
+          stage.appendChild(this.el);
+
+          this.el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.jump(true);
+          });
+          this.el.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            this.attack(true);
+          });
+          this.el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              this.jump(true);
+            }
+          });
+
+          this.applyPos();
+          this.setBase("idle");
+        }
+
+        clampX(x) {
+          return clamp(x, 8, Math.max(8, window.innerWidth - DISPLAY - 8));
+        }
+
+        count(anim) {
+          return (this.counts && this.counts[anim]) || 1;
+        }
+
+        setAnim(name) {
+          this.anim = name;
+          this.frames = this.count(name);
+          this.animElapsed = 0;
+          this.frame = 0;
+          this.frameEl.style.backgroundImage = `url("assets/${this.id}_${name}_strip.png")`;
+          this.frameEl.style.backgroundSize = `${this.frames * DISPLAY}px ${DISPLAY}px`;
+          this.frameEl.style.backgroundPosition = "0 0";
+        }
+
+        setBase(mode) {
+          this.mode = mode;
+          this.oneShot = null;
+          this.setAnim(mode);
+          if (mode === "walk") {
+            this.modeLeft = rand(1800, 3800);
+            if (Math.random() < 0.25) this.moveDir *= -1;
+          } else {
+            this.modeLeft = rand(1600, 4200);
+          }
+        }
+
+        partner() {
+          return walkers.find((w) => w !== this) || null;
+        }
+
+        facePartner() {
+          const p = this.partner();
+          if (p) {
+            this.facing = p.x + DISPLAY / 2 >= this.x + DISPLAY / 2 ? 1 : -1;
+          }
+        }
+
+        jump(withHeart = false) {
+          if (this.suspended || hugRunning) return;
+          this.oneShot = { kind: "jump" };
+          this.setAnim("jump");
+          if (withHeart) {
+            spawnHeart(this.x + DISPLAY / 2 + rand(-6, 6), ground() + 92, { size: 16 });
+          }
+        }
+
+        attack(towardPartner = false) {
+          if (this.suspended || hugRunning) return;
+          if (towardPartner) this.facePartner();
+          this.oneShot = { kind: "attack" };
+          this.setAnim("attack");
+        }
+
+        update(dt) {
+          if (this.suspended) return;
+          this.animElapsed += dt;
+
+          if (this.oneShot) {
+            const fps = this.oneShot.kind === "jump" ? 9 : 8;
+            const duration = (this.frames / fps) * 1000 + 80;
+            if (this.animElapsed >= duration) {
+              this.setBase(this.mode);
+            }
+          } else {
+            this.modeLeft -= dt;
+            if (this.mode === "idle") {
+              if (this.modeLeft <= 0) this.setBase("walk");
+            } else if (this.mode === "walk") {
+              this.x += this.moveDir * (this.speed * dt / 1000);
+              const minX = 8;
+              const maxX = Math.max(minX, window.innerWidth - DISPLAY - 8);
+              if (this.x <= minX) {
+                this.x = minX;
+                this.moveDir = 1;
+              } else if (this.x >= maxX) {
+                this.x = maxX;
+                this.moveDir = -1;
+              }
+              this.facing = this.moveDir;
+              if (this.modeLeft <= 0) this.setBase("idle");
+            }
+          }
+
+          const fps = this.anim === "walk" ? 7
+            : this.anim === "idle" ? 2.4
+            : this.anim === "jump" ? 9 : 8;
+          this.frame = Math.floor((this.animElapsed * fps) / 1000) % Math.max(1, this.frames);
+          this.frameEl.style.backgroundPosition = `${-this.frame * DISPLAY}px 0`;
+          this.applyPos();
+          this.el.style.transform = this.facing < 0 ? "scaleX(-1)" : "scaleX(1)";
+        }
+
+        applyPos() {
+          this.el.style.left = Math.round(this.x) + "px";
+        }
+
+        suspend() {
+          this.suspended = true;
+          this.oneShot = null;
+          this.el.classList.add("hidden");
+        }
+
+        resume() {
+          this.suspended = false;
+          this.el.classList.remove("hidden");
+          this.setBase("idle");
+        }
+      }
+
+      const available = ["me", "her"].filter((id) => chars[id]);
+      if (available.length === 0) {
+        hintEl.textContent = "缺少角色素材，先运行 python tools/process.py";
+        hugBtn.hidden = true;
+        return;
+      }
+
+      const viewportWidth = window.innerWidth;
+      const starts = { me: viewportWidth * 0.36, her: viewportWidth * 0.64 };
+      walkers = available.map((id, i) => {
+        const center = starts[id] !== undefined ? starts[id] : viewportWidth * (0.35 + i * 0.3);
+        return new Walker(id, center, id === "me" ? 1 : -1);
+      });
+
+      let nextAutoHug = performance.now() + rand(9000, 12000);
+      let nextEmote = performance.now() + rand(7000, 11000);
+      let nextHeart = performance.now() + rand(3500, 6500);
+
+      function hugFrame(i) {
+        hugSprite.style.backgroundImage = 'url("assets/couple_hug_strip.png")';
+        hugSprite.style.backgroundSize = `${HUG_COUNT * HUG_DISPLAY}px ${HUG_DISPLAY}px`;
+        hugSprite.style.backgroundPosition = `${-i * HUG_DISPLAY}px 0`;
+      }
+
+      if (HUG_COUNT) {
+        hugFrame(0);
+      } else {
+        hugBtn.hidden = true;
+      }
+
+      async function startHug() {
+        if (hugRunning || !HUG_COUNT) return;
+        if (document.visibilityState === "hidden") return;
+
+        hugRunning = true;
+        document.body.classList.add("hugging");
+        walkers.forEach((w) => w.suspend());
+        hugScene.setAttribute("aria-hidden", "false");
+        hugScene.classList.add("active");
+        await wait(180);
+
+        const sequence = [
+          { i: 0, ms: 520 },   // 伸手靠近
+          { i: 1, ms: 650 },   // 抱住
+          { i: 2, ms: 1900 },  // 爱心（停留最久）
+          { i: 3, ms: 850 },   // 抱紧
+        ];
+        for (const step of sequence) {
+          hugFrame(step.i);
+          if (step.i === 1) spawnHugHearts(3);
+          if (step.i === 2) {
+            spawnHugHearts(6);
+            setTimeout(() => {
+              if (hugRunning) spawnHugHearts(4);
+            }, 750);
+          }
+          await wait(step.ms);
+        }
+
+        hugScene.classList.remove("active");
+        hugScene.setAttribute("aria-hidden", "true");
+        await wait(340);
+        walkers.forEach((w) => w.resume());
+        document.body.classList.remove("hugging");
+        hugRunning = false;
+        hugBtn.blur();
+        nextAutoHug = performance.now() + rand(24000, 38000);
+        walkers.forEach((w) => {
+          spawnHeart(w.x + DISPLAY / 2, ground() + 95, { size: rand(11, 15) });
+        });
+      }
+
+      hugBtn.addEventListener("click", () => startHug());
+      hugSprite.addEventListener("click", () => {
+        if (hugRunning) spawnHugHearts(3);
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.code !== "Space" || e.repeat) return;
+        const tag = (e.target && e.target.tagName || "").toLowerCase();
+        if (tag === "button" || e.target === document.body || e.target === document.documentElement) {
+          e.preventDefault();
+          startHug();
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        walkers.forEach((w) => {
+          w.x = w.clampX(w.x);
+          w.applyPos();
+        });
+      });
+
+      // 星星
+      const sky = document.getElementById("sky");
+      for (let i = 0; i < 58; i++) {
+        const s = document.createElement("div");
+        s.className = "star" + (Math.random() < 0.28 ? " twinkle" : "");
+        s.style.left = rand(0, 100).toFixed(2) + "%";
+        s.style.top = rand(0, 56).toFixed(2) + "%";
+        s.style.opacity = rand(0.25, 0.95).toFixed(2);
+        if (Math.random() < 0.3) s.style.transform = "scale(2)";
+        s.style.animationDelay = rand(0, 3).toFixed(2) + "s";
+        s.style.animationDuration = rand(2.6, 5.2).toFixed(2) + "s";
+        sky.appendChild(s);
+      }
+
+      function maybeEmote(now) {
+        if (hugRunning || now < nextEmote) return;
+        nextEmote = now + rand(11000, 19000);
+        const idle = walkers.filter((w) => !w.oneShot && !w.suspended && w.mode === "idle");
+        if (!idle.length) return;
+        const w = idle[Math.floor(Math.random() * idle.length)];
+        if (Math.random() < 0.4) w.attack(true);
+        else w.jump(false);
+      }
+
+      function maybeAmbientHeart(now) {
+        if (hugRunning || now < nextHeart) return;
+        nextHeart = now + rand(7000, 12000);
+        if (!walkers.length) return;
+        const w = walkers[Math.floor(Math.random() * walkers.length)];
+        spawnHeart(w.x + DISPLAY / 2 + rand(-8, 8), ground() + rand(80, 105), {
+          size: rand(10, 14),
+        });
+      }
+
+      let last = performance.now();
+      function loop(now) {
+        const dt = Math.min(64, now - last);
+        last = now;
+        for (const w of walkers) w.update(dt);
+        maybeEmote(now);
+        maybeAmbientHeart(now);
+        if (!hugRunning && HUG_COUNT && now >= nextAutoHug) {
+          if (document.visibilityState === "hidden") nextAutoHug = now + 8000;
+          else startHug();
+        }
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      window.__pixelCouple = {
+        startHug,
+        get walkers() { return walkers; },
+      };
+      const params = new URLSearchParams(location.search);
+      if (params.has("still")) {
+        const still = document.createElement("style");
+        still.textContent = `
+          .hug-scene, .hug-sprite, .hug-shadow, .hug-glow,
+          .controls, .hint, .actor { transition: none !important; }
+          .star.twinkle, .hug-btn .heart-icon { animation: none !important; }
+        `;
+        document.head.appendChild(still);
+      }
+      if (params.has("hug")) {
+        setTimeout(() => startHug(), 350);
+      }
+    })();
+  </script>
+</body>
+</html>

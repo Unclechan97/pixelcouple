@@ -1,0 +1,14 @@
+# 个人原图与过程产物，不进远程
+raw/
+debug_build/
+debug_crops/
+debug_*.png
+dist/
+
+# 文档按约定只保留本地，不推远程
+README.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
